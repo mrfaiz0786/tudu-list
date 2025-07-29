@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple Blogging Website</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .header-flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .header-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    @media (max-width: 700px) {
+      .header-flex { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .header-controls { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-flex">
+      <h1>My Blog</h1>
+      <div class="header-controls">
+        <input type="text" id="searchInput" placeholder="Search posts..." />
+        <button id="clearAllBtn">Clear All</button>
+        <button id="modeToggleBtn">Dark Mode</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <main style="flex:1;">
+      <section id="posts">
+        <!-- Posts will appear here -->
+      </section>
+
+      <section id="new-post">
+        <h2>Add New Post</h2>
+        <form id="postForm">
+          <input type="text" id="postTitle" placeholder="Post Title" maxlength="100" required />
+          <textarea id="postContent" placeholder="Post Content" maxlength="1000" required></textarea>
+          <button type="submit">Add Post</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+(() => {
+  // DOM elements ko cache kar lete hain
+  const postsContainer = document.getElementById("posts");
+  const postForm = document.getElementById("postForm");
+  const postTitleInput = document.getElementById("postTitle");
+  const postContentInput = document.getElementById("postContent");
+  const searchInput = document.getElementById("searchInput");
+  const clearAllBtn = document.getElementById("clearAllBtn");
+  const modeToggleBtn = document.getElementById("modeToggleBtn");
+
+  // for update
+  let editIndex = null;
+  let isDarkMode = false;
+
+  // Local storage for dummy posts
+  const loadPosts = () => {
+    const storedPosts = localStorage.getItem("blogPosts");
+    return storedPosts
+      ? JSON.parse(storedPosts)
+      : [
+          {
+            title: "Pehla Blog Post",
+            content:
+              "Yeh mera pehla blog post hai. Aap is website ka upyog apne blog posts dikhane ke liye kar sakte hain.",
+            date: new Date().toLocaleString(),
+            likes: 0,
+          },
+          {
+            title: "Doosra Blog Post",
+            content:
+              "Yeh doosra post hai jisme maine kuch interesting baatein share ki hain.",
+            date: new Date().toLocaleString(),
+            likes: 0,
+          },
+        ];
+  };
+
+  // Posts array initialize 
+  let posts = loadPosts();
+
+  // Posts  local storage in save function
+  const savePosts = () =>
+    localStorage.setItem("blogPosts", JSON.stringify(posts));
+
+  // Posts ko display karne ka function (search/filter support ke saath)
+  const displayPosts = (filter = "") => {
+    postsContainer.innerHTML = ""; 
+
+    let filteredPosts = posts;
+    if (filter) {
+      filteredPosts = posts.filter(
+        (post) =>
+          post.title.toLowerCase().includes(filter.toLowerCase()) ||
+          post.content.toLowerCase().includes(filter.toLowerCase())
+      );
+    }
+
+    if (filteredPosts.length === 0) {
+      postsContainer.innerHTML = "<p>Koi post nahi mila.</p>";
+      return;
+    }
+
+    filteredPosts.forEach((post, index) => {
+      const postDiv = document.createElement("div");
+      postDiv.className = "post";
+      postDiv.innerHTML = `<h3>${post.title}</h3>
+                           <p>${post.content}</p>
+                           <small>${post.date ? post.date : ""}</small>
+                           <div>
+                             <button class="like-btn">Like (${post.likes || 0})</button>
+                           </div>`;
+
+      // Edit button 
+      const editBtn = document.createElement("button");
+      editBtn.innerText = "Edit";
+      editBtn.className = "edit-btn";
+      editBtn.addEventListener("click", () => {
+        postTitleInput.value = post.title;
+        postContentInput.value = post.content;
+        editIndex = posts.indexOf(post);
+        postForm.querySelector("button[type='submit']").innerText = "Update";
+      });
+
+      // Delete button 
+      const deleteBtn = document.createElement("button");
+      deleteBtn.innerText = "Delete";
+      deleteBtn.className = "delete-btn";
+      deleteBtn.addEventListener("click", () => {
+        if (confirm("Kya aap is post ko delete karna chahte hain?")) {
+          posts.splice(posts.indexOf(post), 1);
+          savePosts();
+          displayPosts(searchInput ? searchInput.value : "");
+        }
+      });
+
+      // Like button
+      postDiv.querySelector(".like-btn").addEventListener("click", () => {
+        post.likes = (post.likes || 0) + 1;
+        savePosts();
+        displayPosts(searchInput ? searchInput.value : "");
+      });
+
+      postDiv.appendChild(editBtn);
+      postDiv.appendChild(deleteBtn);
+      postsContainer.appendChild(postDiv);
+    });
+  };
+
+  // Form submission event listener for adding/updating post
+  postForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const title = postTitleInput.value.trim();
+    const content = postContentInput.value.trim();
+
+    // Character limit example (optional)
+    if (title.length > 100) {
+      alert("Title 100 characters se zyada nahi ho sakta.");
+      return;
+    }
+    if (content.length > 1000) {
+      alert("Content 1000 characters se zyada nahi ho sakta.");
+      return;
+    }
+
+    if (title && content) {
+      if (editIndex !== null) {
+        // Update mode
+        posts[editIndex] = {
+          ...posts[editIndex],
+          title,
+          content,
+          date: new Date().toLocaleString(),
+        };
+        editIndex = null;
+        postForm.querySelector("button[type='submit']").innerText = "Add Post";
+      } else {
+        // Add mode
+        posts.push({
+          title,
+          content,
+          date: new Date().toLocaleString(),
+          likes: 0,
+        });
+      }
+      savePosts();
+      postForm.reset();
+      displayPosts(searchInput ? searchInput.value : "");
+    }
+  });
+
+  // Search functionality
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      displayPosts(e.target.value);
+    });
+  }
+
+  // Clear all posts
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener("click", () => {
+      if (confirm("Kya aap sabhi posts delete karna chahte hain?")) {
+        posts = [];
+        savePosts();
+        displayPosts();
+      }
+    });
+  }
+
+  // Dark/Light mode toggle
+  if (modeToggleBtn) {
+    modeToggleBtn.addEventListener("click", () => {
+      isDarkMode = !isDarkMode;
+      document.body.classList.toggle("dark-mode", isDarkMode);
+      modeToggleBtn.innerText = isDarkMode ? "Light Mode" : "Dark Mode";
+    });
+  }
+
+  // Page load then posts display 
+  document.addEventListener("DOMContentLoaded", () => displayPosts());
+})();
+// ...existing code...
+postDiv.innerHTML = `<h3>${post.title}</h3>
+  <p>${post.content}</p>
+  <small>${post.date ? post.date : ""}</small>
+  <div>
+    <button class="like-btn">
+      <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>
+      <span>${post.likes || 0}</span>
+    </button>
+  </div>`;
