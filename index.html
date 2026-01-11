@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple Blogging Website</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-flex">
+    <h1>My Blog</h1>
+    <div class="header-controls">
+      <input type="text" id="searchInput" placeholder="Search posts..." />
+      <button id="clearAllBtn">Clear All</button>
+      <button id="modeToggleBtn">Dark Mode</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <main>
+    <section id="posts"></section>
+
+    <section id="new-post">
+      <h2>Add New Post</h2>
+      <form id="postForm">
+        <input type="text" id="postTitle" placeholder="Post Title" maxlength="100" required />
+        <textarea id="postContent" placeholder="Post Content" maxlength="1000" required></textarea>
+        <button type="submit">Add Post</button>
+      </form>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
